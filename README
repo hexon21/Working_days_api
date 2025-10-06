@@ -53,11 +53,18 @@ Evaluar la capacidad de implementar una API precisa, tipada y robusta para cálc
 5. verifica el navegador 
    http://localhost:3000
 
+6. URL exacta de despliegue del endpoint
+
+https://working-days-api.onrender.com/calculate?hours=2
+
 
 👨‍💻 Autor
 
 David Espinosa
 Desarrollador Backend / Data Engineer /IA engineer 
+hexon.lizcano@gmail.com
+
+
 
 
 
