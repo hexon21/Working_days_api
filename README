@@ -1,0 +1,68 @@
+# 🇨🇴 Working Days API — Cálculo de fechas hábiles en Colombia
+
+API REST construida en **TypeScript + Express** que calcula **fechas hábiles** en Colombia, considerando:
+
+- Horario laboral: **lunes a viernes, 8:00 a.m. – 5:00 p.m.**
+- Hora de almuerzo: **12:00 p.m. – 1:00 p.m.**
+- Días festivos nacionales (fuente JSON oficial)
+- Zona horaria de Colombia (`America/Bogota`)
+- Resultado final en formato **UTC (ISO 8601 con sufijo Z)**
+
+---
+
+## 🚀 **Objetivo de la prueba técnica**
+
+Evaluar la capacidad de implementar una API precisa, tipada y robusta para cálculos de tiempo real con reglas de negocio específicas, incluyendo manejo de zonas horarias, días hábiles y validaciones.
+
+---
+
+## 🧱 **Tecnologías utilizadas**
+
+| Componente | Descripción |
+|-------------|--------------|
+| **Node.js** | Entorno de ejecución |
+| **TypeScript** | Tipado estático y robustez del código |
+| **Express.js** | Framework HTTP minimalista |
+| **Luxon** | Manipulación avanzada de fechas y zonas horarias |
+| **Axios** | Obtención dinámica de festivos desde API externa |
+| **Zod** | Validación tipada de parámetros |
+| **Nodemon + ts-node** | Ejecución en desarrollo con autorecarga |
+
+---
+
+## ⚙️ **Instalación**
+
+1. Clona el repositorio:
+   ```bash
+   git clone https://github.com/tu-usuario/working-days-api.git
+   cd working-days-api
+
+2. instala dependencias: 
+```bash 
+  npm install
+
+
+3. Crea el archivo .env en la raíz: 
+```bash 
+  PORT=3000
+
+4. inicia el servidor 
+```bash 
+  npm run dev 
+
+5. verifica el navegador 
+   http://localhost:3000
+
+
+👨‍💻 Autor
+
+David Espinosa
+Desarrollador Backend / Data Engineer /IA engineer 
+
+
+
+
+ 
+
+
+
