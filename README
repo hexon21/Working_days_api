@@ -34,7 +34,7 @@ Evaluar la capacidad de implementar una API precisa, tipada y robusta para cálc
 
 1. Clona el repositorio:
    ```bash
-   git clone https://github.com/tu-usuario/working-days-api.git
+   git clonehttps://github.com/hexon21/Working_days_api.git
    cd working-days-api
 
 2. instala dependencias: 
