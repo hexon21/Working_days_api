@@ -3,16 +3,22 @@ import cors from "cors";
 import { calculateWorkingDate } from "./controllers/workingDaysController";
 
 const app = express();
+
+// ✅ Middleware base
 app.use(cors());
 app.use(express.json());
+
+// ✅ Ruta principal de prueba
+app.get("/", (req, res) => {
+  res.send("🚀 Working Days API está activa. Usa /calculate?hours=8 o /calculate?days=2");
+});
 
 // ✅ Endpoint principal
 app.get("/calculate", calculateWorkingDate);
 
-// ✅ Endpoint raíz opcional
-app.get("/", (_, res) => {
-  res.send("API de cálculo de días laborales activa ✅");
-});
-
+// ✅ Configuración de puerto (Render usa PORT)
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`🚀 Servidor escuchando en puerto ${PORT}`));
+
+app.listen(PORT, () => {
+  console.log(`✅ Servidor corriendo en puerto ${PORT}`);
+});
