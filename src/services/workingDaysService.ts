@@ -1,140 +1,106 @@
 import { DateTime } from "luxon";
-import axios from "axios";
+import { COLOMBIA_HOLIDAYS } from "../utils/holidays";
 
-// ================================
-// ⚙️ CONFIGURACIÓN BASE
-// ================================
+const WORK_START = 8;
+const WORK_END = 17;
+const LUNCH_START = 12;
+const LUNCH_END = 13;
 
-// Zona horaria local (Colombia)
-const COLOMBIA_TZ = "America/Bogota";
-
-// Horario laboral
-const WORK_START = 8;   // 8:00 a.m.
-const WORK_END = 17;    // 5:00 p.m.
-const LUNCH_START = 12; // 12:00 p.m.
-const LUNCH_END = 13;   // 1:00 p.m.
-
-/**
- * Determina si una fecha está dentro del horario de almuerzo.
- */
-function isLunchTime(date: DateTime): boolean {
-  return date.hour >= LUNCH_START && date.hour < LUNCH_END;
+function isWeekend(date: DateTime): boolean {
+  return date.weekday === 6 || date.weekday === 7;
 }
 
-/**
- * Determina si un día es fin de semana o festivo.
- */
-function isNonWorkingDay(date: DateTime, holidays: string[]): boolean {
-  const isoDate = date.toISODate() ?? "";
-  const isWeekend = date.weekday > 5; // sábado (6) o domingo (7)
-  const isHoliday = holidays?.includes(isoDate);
-  return isWeekend || isHoliday;
+function isHoliday(date: DateTime, holidays: string[]): boolean {
+  return holidays.includes(date.toISODate()!);
 }
 
-/**
- * Avanza hasta el siguiente día hábil a las 8:00 a.m.
- */
-function addNextWorkingDay(date: DateTime, holidays: string[]): DateTime {
-  let next = date.plus({ days: 1 }).set({ hour: WORK_START, minute: 0 });
-  while (isNonWorkingDay(next, holidays)) {
-    next = next.plus({ days: 1 }).set({ hour: WORK_START, minute: 0 });
-  }
-  return next;
-}
-
-/**
- * Suma horas hábiles respetando jornada laboral, almuerzo y festivos.
- */
-export function addWorkingHours(date: DateTime, hours: number, holidays: string[]): DateTime {
+function addWorkingDays(date: DateTime, days: number, holidays: string[]): DateTime {
   let result = date;
-  let remaining = hours;
+  let added = 0;
 
-  while (remaining > 0) {
-    // Día no hábil → siguiente día laboral
-    if (isNonWorkingDay(result, holidays)) {
-      result = addNextWorkingDay(result, holidays);
+  while (added < days) {
+    result = result.plus({ days: 1 }).set({ hour: WORK_START });
+    if (!isWeekend(result) && !isHoliday(result, holidays)) {
+      added++;
+    }
+  }
+  return result;
+}
+
+function addWorkingHours(date: DateTime, hours: number, holidays: string[]): DateTime {
+  let result = date;
+
+  while (hours > 0) {
+    // si es fin de semana o festivo, pasa al siguiente día hábil
+    if (isWeekend(result) || isHoliday(result, holidays)) {
+      result = result.plus({ days: 1 }).set({ hour: WORK_START });
       continue;
     }
 
-    // Pausa de almuerzo → saltar a 1 p.m.
-    if (isLunchTime(result)) {
-      result = result.set({ hour: LUNCH_END, minute: 0 });
+    // si está fuera del horario laboral, ajusta
+    if (result.hour >= WORK_END) {
+      result = result.plus({ days: 1 }).set({ hour: WORK_START });
+      continue;
+    }
+    if (result.hour < WORK_START) {
+      result = result.set({ hour: WORK_START });
+    }
+
+    // manejar horario de almuerzo
+    if (result.hour >= LUNCH_START && result.hour < LUNCH_END) {
+      result = result.set({ hour: LUNCH_END });
       continue;
     }
 
-    // Fuera de horario laboral → siguiente día hábil
-    if (result.hour >= WORK_END || result.hour < WORK_START) {
-      result = addNextWorkingDay(result, holidays);
-      continue;
-    }
-
-    // Límite actual: hasta almuerzo o fin de jornada
+    // calcula el fin del bloque disponible antes del almuerzo o fin de jornada
     const nextLimit =
       result.hour < LUNCH_START
         ? LUNCH_START
-        : result.hour < LUNCH_END
-        ? LUNCH_END
         : WORK_END;
 
-    const available = nextLimit - result.hour; // horas hábiles posibles
+    const available = nextLimit - result.hour;
+    const toAdd = Math.min(available, hours);
 
-    if (remaining <= available) {
-      result = result.plus({ hours: remaining });
-      remaining = 0;
-    } else {
-      result = result.set({ hour: nextLimit, minute: 0 });
-      remaining -= available;
+    // suma con precisión (sin truncar minutos ni segundos)
+    result = result.plus({ hours: toAdd });
+    hours -= toAdd;
 
-      // Si llegamos al fin del día, pasamos al siguiente hábil
-      if (nextLimit === WORK_END) {
-        result = addNextWorkingDay(result, holidays);
-      }
+    // si se completó el bloque, pasa al siguiente hábil
+    if (result.hour >= WORK_END) {
+      result = result.plus({ days: 1 }).set({ hour: WORK_START });
     }
   }
 
   return result;
 }
 
-/**
- * Obtiene la lista de festivos colombianos.
- */
-export async function getHolidays(): Promise<string[]> {
-  const url = "https://content.capta.co/Recruitment/WorkingDays.json";
-
-  try {
-    const { data } = await axios.get(url);
-    if (Array.isArray(data.holidays)) return data.holidays;
-    if (Array.isArray(data)) return data;
-    console.warn("⚠️ Estructura inesperada en JSON de festivos:", data);
-    return [];
-  } catch (error) {
-    console.error("❌ Error obteniendo días festivos:", error);
-    return [];
-  }
-}
-
-/**
- * Calcula la fecha hábil final sumando días y horas.
- */
-export async function getNextWorkingDate({
-  days,
-  hours,
+export function getNextWorkingDate({
+  days = 0,
+  hours = 0,
   date,
+  holidays = COLOMBIA_HOLIDAYS,
 }: {
-  days: number;
-  hours: number;
+  days?: number;
+  hours?: number;
   date?: string;
-}): Promise<string> {
-  const holidays = await getHolidays();
+  holidays?: string[];
+}): string {
+  try {
+    let current = date
+      ? DateTime.fromISO(date, { zone: "America/Bogota" })
+      : DateTime.now().setZone("America/Bogota");
 
-  let startDate = date
-    ? DateTime.fromISO(date, { zone: "utc" }).setZone(COLOMBIA_TZ)
-    : DateTime.now().setZone(COLOMBIA_TZ);
+    if (isNaN(days) || isNaN(hours)) {
+      throw new Error("Parámetros inválidos. 'days' y 'hours' deben ser numéricos.");
+    }
 
-  // Calcular total de horas (1 día = 8 horas hábiles)
-  const totalHours = days * 8 + hours;
+    if (days > 0) current = addWorkingDays(current, days, holidays);
+    if (hours > 0) current = addWorkingHours(current, hours, holidays);
 
-  let result = addWorkingHours(startDate, totalHours, holidays);
-
-  return result.setZone("utc").toISO({ suppressMilliseconds: true })!;
+    return current.setZone("utc").toISO({ suppressMilliseconds: false });
+  } catch (error) {
+    throw new Error(
+      `Error interno en el cálculo: ${(error as Error).message}`
+    );
+  }
 }
